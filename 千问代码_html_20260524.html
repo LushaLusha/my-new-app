@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园午餐点评 - 语音版</title>
+    <style>
+        :root {
+            --primary-color: #FF6B6B;
+            --secondary-color: #4ECDC4;
+            --bg-color: #f7f9fc;
+            --text-color: #333;
+            --card-bg: #ffffff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding-bottom: 70px; }
+
+        .hidden { display: none !important; }
+        .btn { border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:active { transform: scale(0.95); }
+
+        /* 登录页 */
+        #auth-page {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+        }
+        .auth-card {
+            background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center;
+        }
+        .avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
+        .avatar-option { font-size: 30px; padding: 10px; border: 2px solid #eee; border-radius: 10px; cursor: pointer; }
+        .avatar-option.selected { border-color: var(--primary-color); background-color: #fff0f0; }
+        .auth-input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; }
+
+        /* 主页 */
+        header {
+            background: white; padding: 15px; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center;
+        }
+        .write-btn { background: var(--primary-color); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; }
+        
+        .feed-container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
+        .review-card {
+            background: var(--card-bg); border-radius: 15px; padding: 15px; margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .user-info { display: flex; align-items: center; margin-bottom: 10px; cursor: pointer; }
+        .user-avatar { font-size: 24px; margin-right: 10px; }
+        .user-meta { font-size: 12px; color: #888; }
+        .review-img { width: 100%; height: 200px; object-fit: cover; border-radius: 10px; margin: 10px 0; background: #eee; }
+        .scores { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin: 10px 0; background: #f9f9f9; padding: 8px; border-radius: 8px; }
+        .actions { display: flex; gap: 15px; border-top: 1px solid #eee; padding-top: 10px; }
+        .action-btn { background: none; border: none; color: #666; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .action-btn.liked { color: var(--primary-color); }
+
+        /* 弹窗 */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-content {
+            background: white; width: 90%; max-width: 500px; padding: 20px; border-radius: 15px;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .slider-group { margin: 15px 0; }
+        .slider-group label { display: block; font-size: 14px; margin-bottom: 5px; }
+        .slider-group input { width: 100%; }
+        
+        /* 语音输入相关样式 */
+        .input-group { position: relative; display: flex; gap: 10px; }
+        textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 10px; resize: none; }
+        .voice-btn {
+            background: #eee; border: none; width: 44px; height: 44px; border-radius: 10px;
+            font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: all 0.3s;
+        }
+        .voice-btn.recording { background: #ff4757; color: white; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        /* 个人主页 */
+        #profile-page { max-width: 600px; margin: 20px auto; padding: 15px; }
+        .profile-header { background: white; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px; }
+        .level-badge { background: gold; color: #d35400; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
+        .stat-item { background: #f8f9fa; padding: 10px; border-radius: 10px; }
+        .badges-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
+        .badge { font-size: 24px; position: relative; }
+        .badge-layer { position: absolute; top: -5px; right: -5px; font-size: 10px; background: red; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; }
+
+        .nav-map { width: 100%; height: 250px; background: #e0e0e0; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #666; font-size: 18px; margin-top: 15px; }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #eee;
+            display: flex; justify-content: space-around; padding: 10px 0;
+        }
+        .nav-item { text-align: center; font-size: 12px; color: #999; cursor: pointer; }
+        .nav-item.active { color: var(--primary-color); }
+        .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- 登录/注册页面 -->
+    <div id="auth-page">
+        <div class="auth-card">
+            <h2>欢迎来到校园午餐点评</h2>
+            <p style="color: #666; margin-bottom: 15px;">请选择你的动物头像并设置昵称</p>
+            <div class="avatar-grid" id="avatar-grid"></div>
+            <input type="text" id="username-input" class="auth-input" placeholder="请输入你的昵称">
+            <input type="text" id="school-input" class="auth-input" placeholder="请输入所属学校">
+            <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="handleLogin()">进入校园美食圈</button>
+        </div>
+    </div>
+
+    <!-- 主应用容器 -->
+    <div id="app-container" class="hidden">
+        <header>
+            <h3 id="page-title">美食广场</h3>
+            <button class="btn write-btn" onclick="openWriteModal()">✍️ 写点评</button>
+        </header>
+
+        <!-- 点评信息流 -->
+        <div id="feed-page" class="feed-container"></div>
+
+        <!-- 个人主页 -->
+        <div id="profile-page" class="hidden">
+            <div class="profile-header">
+                <div style="font-size: 60px;" id="profile-avatar">🐶</div>
+                <h2 style="margin-top: 10px;"><span id="profile-name">用户</span> <span class="level-badge" id="profile-level">Lv.1</span></h2>
+                <p style="color: #666; font-size: 14px;" id="profile-school">某某大学</p>
+                <div class="stats-grid">
+                    <div class="stat-item"><div>积分</div><strong id="user-points">0</strong></div>
+                    <div class="stat-item"><div>点评</div><strong id="user-reviews">0</strong></div>
+                    <div class="stat-item"><div>获赞</div><strong id="user-likes">0</strong></div>
+                </div>
+                <div style="text-align: left; margin-top: 20px;">
+                    <h4>🏅 我的徽章墙</h4>
+                    <div class="badges-container" id="user-badges"></div>
+                    <p style="font-size: 12px; color: #888; margin-top: 10px;">当前代金券: <span style="color: var(--primary-color);">满20减5元 (Lv.2奖励)</span></p>
+                </div>
+            </div>
+            <div class="review-card">
+                <h4>🍽️ 推荐菜品</h4>
+                <p style="color: #666; font-size: 14px; margin-top: 10px;">红烧肉、糖醋排骨、麻辣香锅</p>
+            </div>
+        </div>
+
+        <!-- 底部导航 -->
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="switchTab('feed')">
+                <span class="nav-icon">🏠</span>首页
+            </div>
+            <div class="nav-item" onclick="switchTab('profile')">
+                <span class="nav-icon">👤</span>我的
+            </div>
+        </div>
+    </div>
+
+    <!-- 写点评弹窗 -->
+    <div id="write-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>发布新点评</h3>
+            <div style="margin: 15px 0;">
+                <label>上传美食照片:</label>
+                <input type="file" id="review-image-input" accept="image/*" style="margin-top: 5px;">
+            </div>
+            
+            <!-- 增加了语音按钮的文本框区域 -->
+            <div class="input-group">
+                <textarea id="review-text" placeholder="这道菜味道怎么样？点击麦克风语音输入..."></textarea>
+                <button class="voice-btn" id="main-voice-btn" onclick="toggleVoiceInput('review-text', 'main-voice-btn')">🎙️</button>
+            </div>
+            
+            <div class="slider-group">
+                <label>口味评分: <span id="val-taste">5</span>/10</label>
+                <input type="range" id="slider-taste" min="0" max="10" value="5" oninput="document.getElementById('val-taste').innerText = this.value">
+            </div>
+            <div class="slider-group">
+                <label>分量评分: <span id="val-portion">5</span>/10</label>
+                <input type="range" id="slider-portion" min="0" max="10" value="5" oninput="document.getElementById('val-portion').innerText = this.value">
+            </div>
+            <div class="slider-group">
+                <label>外观评分: <span id="val-look">5</span>/10</label>
+                <input type="range" id="slider-look" min="0" max="10" value="5" oninput="document.getElementById('val-look').innerText = this.value">
+            </div>
+            <div class="slider-group">
+                <label>性价比评分: <span id="val-value">5</span>/10</label>
+                <input type="range" id="slider-value" min="0" max="10" value="5" oninput="document.getElementById('val-value').innerText = this.value">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn" style="background: #eee; flex: 1;" onclick="closeWriteModal()">取消</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="submitReview()">发布</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导航弹窗 -->
+    <div id="nav-modal" class="modal hidden">
+        <div class="modal-content" style="text-align: center;">
+            <h3>🗺️ 前往餐厅路线</h3>
+            <p style="color: #666; font-size: 14px;">从 <strong>南区宿舍楼</strong> 出发</p>
+            <div class="nav-map">🗺️ 导航地图展示区域<br>(模拟图片)</div>
+            <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="document.getElementById('nav-modal').classList.add('hidden')">关闭导航</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 语音识别逻辑 ---
+        let recognition;
+        let isRecording = false;
+        let currentInputId = '';
+        let currentBtnId = '';
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.continuous = false; // 说完一句自动停止
+            recognition.interimResults = true; // 显示中间结果
+
+            recognition.onstart = function() {
+                isRecording = true;
+                if(currentBtnId) document.getElementById(currentBtnId).classList.add('recording');
+            };
+
+            recognition.onend = function() {
+                isRecording = false;
+                if(currentBtnId) document.getElementById(currentBtnId).classList.remove('recording');
+            };
+
+            recognition.onresult = function(event) {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    transcript += event.results[i][0].transcript;
+                }
+                if (document.getElementById(currentInputId)) {
+                    document.getElementById(currentInputId).value = transcript;
+                }
+            };
+        } else {
+            alert("您的浏览器不支持语音识别功能，请使用 Chrome 或 Edge 浏览器。");
+        }
+
+        function toggleVoiceInput(inputId, btnId) {
+            if (!recognition) return;
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                currentInputId = inputId;
+                currentBtnId = btnId;
+                recognition.start();
+            }
+        }
+
+        // --- 数据与状态管理 ---
+        const animals = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮'];
+        let currentUser = null;
+        let selectedAvatar = '🐶';
+        let reviews = [
+            {
+                id: 1, user: '美食家小王', avatar: '🐯', school: '清华大学', time: '10分钟前',
+                image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=60',
+                text: '今天的午餐色拉非常新鲜，但是酱汁稍微有点咸了。性价比很高！',
+                scores: { taste: 8, portion: 7, look: 9, value: 9 },
+                likes: 12, comments: [{user: '吃货小李', text: '确实，我也觉得咸。'}]
+            }
+        ];
+
+        // --- 初始化与登录 ---
+        window.onload = function() {
+            const grid = document.getElementById('avatar-grid');
+            animals.forEach(animal => {
+                const div = document.createElement('div');
+                div.className = 'avatar-option';
+                div.innerText = animal;
+                div.onclick = () => {
+                    document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                    selectedAvatar = animal;
+                };
+                grid.appendChild(div);
+            });
+            grid.children[0].classList.add('selected');
+        };
+
+        function handleLogin() {
+            const username = document.getElementById('username-input').value;
+            const school = document.getElementById('school-input').value;
+            if (!username || !school) return alert('请填写完整信息');
+            currentUser = { name: username, school: school, avatar: selectedAvatar, points: 0, reviewsCount: 0, likesReceived: 0, level: 1 };
+            document.getElementById('auth-page').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            renderFeed();
+        }
+
+        // --- 页面渲染 ---
+        function renderFeed() {
+            const container = document.getElementById('feed-page');
+            container.innerHTML = '';
+            reviews.forEach(review => {
+                const avgScore = ((review.scores.taste + review.scores.portion + review.scores.look + review.scores.value) / 4).toFixed(1);
+                const card = document.createElement('div');
+                card.className = 'review-card';
+                card.innerHTML = `
+                    <div class="user-info" onclick="viewProfile('${review.user}', '${review.avatar}', '${review.school}')">
+                        <span class="user-avatar">${review.avatar}</span>
+                        <div>
+                            <div style="font-weight: bold;">${review.user}</div>
+                            <div class="user-meta">${review.school} · ${review.time}</div>
+                        </div>
+                    </div>
+                    <img src="${review.image}" class="review-img" alt="美食图片">
